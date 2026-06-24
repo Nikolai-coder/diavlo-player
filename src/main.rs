@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::thread;
@@ -36,14 +36,18 @@ fn main() {
     let (event_tx, event_rx) = channel();
 
     let engine = Arc::new(AudioEngine::new(event_tx));
-    let first_audio = Arc::new(AtomicBool::new(false));
-    let fa_clone = first_audio.clone();
     let st = start;
+    let first_audio = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let file_open_time = Arc::new(std::sync::Mutex::new(None::<Instant>));
+
+    let fa = first_audio.clone();
+    let fot = file_open_time.clone();
 
     thread::spawn(move || {
         for event in event_rx {
             let w = window_weak.clone();
-            let f = fa_clone.clone();
+            let f = fa.clone();
+            let fot_local = fot.clone();
             let _ = w.upgrade_in_event_loop(move |win| match event {
                 AudioEvent::StateChanged(s) => {
                     let label = match s {
@@ -56,9 +60,23 @@ fn main() {
                     };
                     win.set_status_text(label.into());
                     win.set_is_playing(s == PlaybackState::Playing);
-                    if s == PlaybackState::Playing && !f.load(Ordering::Relaxed) {
+                }
+                AudioEvent::DurationLoaded(dur) => {
+                    log::info!("METRIC: duration={:.1}", dur);
+                }
+                AudioEvent::StreamReady => {
+                    let elapsed = st.elapsed();
+                    log::info!("METRIC: stream_ready={:.2?}", elapsed);
+                }
+                AudioEvent::FirstSampleEnqueued => {
+                    if !f.load(Ordering::Relaxed) {
                         f.store(true, Ordering::Relaxed);
-                        log::info!("=== TIME TO FIRST AUDIO: {:.2?} ===", st.elapsed());
+                        let from_start = st.elapsed();
+                        log::info!("METRIC: first_sample_enqueued={:.2?}", from_start);
+                        if let Some(fot) = fot_local.lock().unwrap().as_ref() {
+                            let from_open = fot.elapsed();
+                            log::info!("METRIC: file_open_to_first_sample={:.2?}", from_open);
+                        }
                     }
                 }
                 AudioEvent::PositionUpdated(pos) => {
@@ -66,10 +84,8 @@ fn main() {
                     let s = (pos % 60.0) as u32;
                     win.set_status_text(format!("{:02}:{:02}", m, s).into());
                 }
-                AudioEvent::DurationLoaded(dur) => {
-                    log::info!("Duration: {:.1}s", dur);
-                }
                 AudioEvent::Error(e) => {
+                    log::info!("METRIC: error={}", e);
                     win.set_status_text(format!("Error: {}", e).into());
                     win.set_is_playing(false);
                 }
@@ -97,13 +113,14 @@ fn main() {
             .unwrap_or("File");
         window.set_track_title(fname.into());
         window.set_status_text("Loading...".into());
+        *file_open_time.lock().unwrap() = Some(Instant::now());
         engine.send_command(AudioCommand::Play(fp.clone()));
     } else {
         window.set_track_title("Pass WAV file as argument".into());
         window.set_status_text("Stopped".into());
     }
 
-    log::info!("Window visible: {:.2?}", start.elapsed());
+    log::info!("METRIC: window_visible={:.2?}", start.elapsed());
 
     window.run().unwrap();
 

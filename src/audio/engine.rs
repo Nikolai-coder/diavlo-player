@@ -32,6 +32,8 @@ pub enum AudioCommand {
 pub enum AudioEvent {
     StateChanged(PlaybackState),
     DurationLoaded(f64),
+    StreamReady,
+    FirstSampleEnqueued,
     PositionUpdated(f64),
     Error(String),
     Finished,
@@ -212,6 +214,7 @@ impl AudioEngine {
             let _ = event_tx.send(AudioEvent::Error(format!("Cannot play: {}", e)));
             return;
         }
+        let _ = event_tx.send(AudioEvent::StreamReady);
 
         let mut current_decode: Option<DecoderHandle> = None;
 
@@ -270,6 +273,7 @@ impl AudioEngine {
                     thread::spawn(move || {
                         let mut frames_decoded: u64 = 0;
                         let sample_rate = src_rate as u64;
+                        let mut first_sample = true;
 
                         loop {
                             if sf.load(Ordering::SeqCst) {
@@ -311,6 +315,11 @@ impl AudioEngine {
                                             prod_guard.push_slice(&resampled[offset..end]);
                                         drop(prod_guard);
                                         offset += written;
+                                    }
+
+                                    if first_sample {
+                                        first_sample = false;
+                                        let _ = evt.send(AudioEvent::FirstSampleEnqueued);
                                     }
 
                                     frames_decoded += samples.len() as u64 / src_ch as u64;
