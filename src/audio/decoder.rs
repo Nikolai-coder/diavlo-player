@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::path::Path;
+use std::sync::OnceLock;
 
 use symphonia::core::codecs::audio::{AudioDecoder as AudioDecoderTrait, AudioDecoderOptions};
+use symphonia::core::codecs::registry::CodecRegistry;
 use symphonia::core::codecs::CodecParameters;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::probe::Hint;
@@ -10,7 +12,19 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::units::Time;
 
+use symphonia_adapter_libopus::OpusDecoder;
+
 use crate::errors::{DiavloError, Result};
+
+fn codec_registry() -> &'static CodecRegistry {
+    static REGISTRY: OnceLock<CodecRegistry> = OnceLock::new();
+    REGISTRY.get_or_init(|| {
+        let mut reg = CodecRegistry::new();
+        symphonia::default::register_enabled_codecs(&mut reg);
+        reg.register_audio_decoder::<OpusDecoder>();
+        reg
+    })
+}
 
 pub struct AudioDecoder {
     format: Box<dyn FormatReader>,
@@ -73,7 +87,7 @@ impl AudioDecoder {
         });
 
         let dec_opts = AudioDecoderOptions::default();
-        let decoder = symphonia::default::get_codecs()
+        let decoder = codec_registry()
             .make_audio_decoder(&audio_params, &dec_opts)
             .map_err(|e| DiavloError::Decode(format!("Cannot create decoder: {}", e)))?;
 
