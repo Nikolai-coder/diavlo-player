@@ -1,55 +1,54 @@
+#![windows_subsystem = "windows"]
+
 use std::path::Path;
-use std::sync::atomic::Ordering;
 use std::sync::mpsc::channel;
 use std::sync::Arc;
-use std::thread;
 use std::time::Instant;
 
 use slint::ComponentHandle;
 
 use diavlo_player::audio::engine::{AudioCommand, AudioEngine, AudioEvent, PlaybackState};
+use diavlo_player::platform::windows;
 
 slint::include_modules!();
 
 fn main() {
-    let start = Instant::now();
-
     let _ = simplelog::SimpleLogger::init(log::LevelFilter::Info, simplelog::Config::default());
 
     let args: Vec<String> = std::env::args().collect();
-    let file_to_play = if args.len() > 1 {
+    let file_to_play: Option<String> = if args.len() > 1 {
         let p = &args[1];
         if Path::new(p).exists() {
             log::info!("CLI file: {}", p);
             Some(p.clone())
-        } else {
-            log::warn!("File not found: {}", p);
-            None
-        }
-    } else {
-        None
-    };
+        } else { None }
+    } else { None };
 
     let window = AppWindow::new().expect("Failed to create Slint window");
     let window_weak = window.as_weak();
 
+    // Apply frameless glass window
+    if let Some(hwnd) = unsafe { windows::hwnd_from_slint(window.window()) } {
+        unsafe { windows::apply_frameless_glass(hwnd); }
+        log::info!("Frameless glass applied");
+
+        window.on_minimize_window(move || unsafe { windows::minimize_window(hwnd) });
+        window.on_maximize_window(move || unsafe { windows::maximize_restore_window(hwnd) });
+        window.on_close_window(move || unsafe { windows::close_window(hwnd) });
+    }
+
+    // Audio engine
     let (event_tx, event_rx) = channel();
-
     let engine = Arc::new(AudioEngine::new(event_tx));
-    let st = start;
-    let first_audio = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let file_open_time = Arc::new(std::sync::Mutex::new(None::<Instant>));
+    let start = Instant::now();
 
-    let fa = first_audio.clone();
-    let fot = file_open_time.clone();
-
-    thread::spawn(move || {
+    let w_events = window_weak.clone();
+    std::thread::spawn(move || {
         for event in event_rx {
-            let w = window_weak.clone();
-            let f = fa.clone();
-            let fot_local = fot.clone();
+            let w = w_events.clone();
             let _ = w.upgrade_in_event_loop(move |win| match event {
                 AudioEvent::StateChanged(s) => {
+                    win.set_is_playing(matches!(s, PlaybackState::Playing));
                     let label = match s {
                         PlaybackState::Idle => "Stopped",
                         PlaybackState::Loading => "Loading...",
@@ -59,73 +58,77 @@ fn main() {
                         PlaybackState::Error => "Error",
                     };
                     win.set_status_text(label.into());
-                    win.set_is_playing(s == PlaybackState::Playing);
                 }
                 AudioEvent::DurationLoaded(dur) => {
-                    log::info!("METRIC: duration={:.1}", dur);
+                    win.set_total_secs(dur as f32);
                 }
                 AudioEvent::StreamReady => {
-                    let elapsed = st.elapsed();
-                    log::info!("METRIC: stream_ready={:.2?}", elapsed);
+                    log::info!("Stream ready: {:.2?}", start.elapsed());
                 }
                 AudioEvent::FirstSampleEnqueued => {
-                    if !f.load(Ordering::Relaxed) {
-                        f.store(true, Ordering::Relaxed);
-                        let from_start = st.elapsed();
-                        log::info!("METRIC: first_sample_enqueued={:.2?}", from_start);
-                        if let Some(fot) = fot_local.lock().unwrap().as_ref() {
-                            let from_open = fot.elapsed();
-                            log::info!("METRIC: file_open_to_first_sample={:.2?}", from_open);
-                        }
-                    }
+                    log::info!("First sample: {:.2?}", start.elapsed());
                 }
                 AudioEvent::PositionUpdated(pos) => {
-                    let m = (pos / 60.0) as u32;
-                    let s = (pos % 60.0) as u32;
-                    win.set_status_text(format!("{:02}:{:02}", m, s).into());
+                    win.set_position_secs(pos as f32);
                 }
                 AudioEvent::Error(e) => {
-                    log::info!("METRIC: error={}", e);
                     win.set_status_text(format!("Error: {}", e).into());
                     win.set_is_playing(false);
                 }
                 AudioEvent::Finished => {
-                    win.set_status_text("Finished".into());
                     win.set_is_playing(false);
+                    win.set_status_text("Finished".into());
                 }
             });
         }
     });
 
-    let eng = engine.clone();
+    // Play/Pause callback
+    let eng_pb = engine.clone();
     window.on_play_pause_clicked(move || {
-        if eng.is_playing() {
-            eng.send_command(AudioCommand::Pause);
-        } else {
-            eng.send_command(AudioCommand::Resume);
+        if eng_pb.is_playing() { eng_pb.send_command(AudioCommand::Pause); }
+        else { eng_pb.send_command(AudioCommand::Resume); }
+    });
+
+    // File chooser
+    let eng_choose = engine.clone();
+    let w_choose = window_weak.clone();
+    window.on_choose_file(move || {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Audio", &["wav", "flac", "mp3", "aac", "m4a", "ogg", "opus", "aiff"])
+            .pick_file()
+        {
+            let fp = path.to_string_lossy().to_string();
+            if let Some(w) = w_choose.upgrade() {
+                w.set_track_title(Path::new(&fp).file_stem().and_then(|n| n.to_str()).unwrap_or("Unknown").into());
+                w.set_has_track(true);
+                w.set_status_text("Loading...".into());
+                eng_choose.send_command(AudioCommand::Play(fp));
+            }
         }
     });
 
+    // Mute toggle
+    let w_mute = window_weak.clone();
+    window.on_mute_toggled(move || {
+        if let Some(w) = w_mute.upgrade() { w.set_is_muted(!w.get_is_muted()); }
+    });
+
+    window.on_seeked(|_| {});
+    window.on_volume_changed(|_| {});
+
+    // Initial CLI file
     if let Some(ref fp) = file_to_play {
-        let fname = Path::new(fp)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("File");
-        window.set_track_title(fname.into());
+        window.set_track_title(Path::new(fp).file_stem().and_then(|n| n.to_str()).unwrap_or("Unknown").into());
+        window.set_has_track(true);
         window.set_status_text("Loading...".into());
-        *file_open_time.lock().unwrap() = Some(Instant::now());
         engine.send_command(AudioCommand::Play(fp.clone()));
-    } else {
-        window.set_track_title("Pass WAV file as argument".into());
-        window.set_status_text("Stopped".into());
     }
 
-    log::info!("METRIC: window_visible={:.2?}", start.elapsed());
-
+    log::info!("Window visible: {:.2?}", start.elapsed());
     window.run().unwrap();
 
-    log::info!("Clean shutdown...");
+    log::info!("Shutdown...");
     engine.send_command(AudioCommand::Stop);
     std::thread::sleep(std::time::Duration::from_millis(100));
-    log::info!("Done.");
 }

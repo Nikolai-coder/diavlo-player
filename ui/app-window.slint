@@ -1,55 +1,376 @@
-import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+﻿import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
-    title: "DIAVLO PLAYER (Vertical Slice)";
-    width: 450px;
-    height: 180px;
-    background: #0B0B0C;
-    default-font-size: 14px;
+    title: "DIAVLO PLAYER";
+    background: #CC111116;
+    default-font-size: 13px;
 
-    in property <string> track-title: "No file loaded";
+    in property <string> track-title: "";
+    in property <string> artist-name: "";
     in property <string> status-text: "Stopped";
     in property <bool> is-playing: false;
+    in property <bool> has-track: false;
+    in property <float> position-secs: 0.0;
+    in property <float> total-secs: 0.0;
+    in property <float> volume: 0.8;
+    in property <bool> is-muted: false;
 
     callback play-pause-clicked();
+    callback choose-file();
+    callback seeked(float);
+    callback volume-changed(float);
+    callback mute-toggled();
+    callback minimize-window();
+    callback maximize-window();
+    callback close-window();
+    callback files-dropped([string]);
+
+    min-width: 420px;
+    min-height: 280px;
+    preferred-width: 460px;
+    preferred-height: 360px;
 
     VerticalBox {
-        alignment: center;
-        spacing: 15px;
-        padding: 20px;
+        spacing: 0px;
 
-        // Title and Info
-        VerticalBox {
-            spacing: 4px;
-            alignment: center;
-            
-            Text {
-                text: root.track-title;
-                color: #F3F4F6;
-                font-size: 16px;
-                font-weight: 700;
-                horizontal-alignment: center;
-                overflow: elide;
-            }
+        // ── Title bar ────────────────────────────────────
+        Rectangle {
+            min-height: 36px;
+            max-height: 36px;
+            background: #00000000;
 
-            Text {
-                text: root.status-text;
-                color: #9CA3AF;
-                font-size: 12px;
-                horizontal-alignment: center;
+            HorizontalBox {
+                padding-left: 16px;
+                padding-right: 12px;
+                padding-top: 6px;
+                alignment: start;
+
+                Text {
+                    text: "DIAVLO PLAYER";
+                    color: #FFFFFF;
+                    font-weight: 600;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    background: #00000000;
+                }
+
+                Rectangle {
+                    background: #00000000;
+                    min-width: 90px;
+
+                    HorizontalBox {
+                        spacing: 4px;
+                        alignment: end;
+                        padding-right: 4px;
+
+                        min-btn := Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            background: #00000000;
+                            border-radius: 6px;
+
+                            ta-min := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.minimize-window(); }
+                            }
+
+                            Text {
+                                text: "─";
+                                color: #CCCCCC;
+                                font-size: 12px;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-min.has-hover : {
+                                    background: #20FFFFFF;
+                                }
+                            ]
+                        }
+
+                        max-btn := Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            background: #00000000;
+                            border-radius: 6px;
+
+                            ta-max := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.maximize-window(); }
+                            }
+
+                            Text {
+                                text: "▢";
+                                color: #CCCCCC;
+                                font-size: 14px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-max.has-hover : {
+                                    background: #20FFFFFF;
+                                }
+                            ]
+                        }
+
+                        close-btn := Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            background: #00000000;
+                            border-radius: 6px;
+
+                            ta-close := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.close-window(); }
+                            }
+
+                            Text {
+                                text: "✕";
+                                color: #CCCCCC;
+                                font-size: 13px;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-close.has-hover : {
+                                    background: #CC3333;
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         }
 
-        // Control Button
-        HorizontalBox {
-            alignment: center;
-            
-            Button {
-                text: root.is-playing ? "PAUSE" : "PLAY";
-                width: 120px;
-                height: 35px;
-                clicked => {
-                    root.play-pause-clicked();
+        // ── Content ───────────────────────────────────────
+        if !root.has-track : Rectangle {
+            background: #00000000;
+            VerticalBox {
+                spacing: 12px;
+                alignment: center;
+                padding-top: 30px;
+                padding-bottom: 40px;
+
+                Rectangle { min-height: 10px; }
+
+                Text {
+                    text: "♫";
+                    color: #FFFFFF;
+                    font-size: 36px;
+                    horizontal-alignment: center;
+                    opacity: 0.25;
+                }
+
+                Text {
+                    text: "Drop your music here";
+                    color: #FFFFFF;
+                    font-size: 16px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "WAV · FLAC · MP3 · AAC · OGG · AIFF";
+                    color: #CCCCCC;
+                    font-size: 11px;
+                    horizontal-alignment: center;
+                    opacity: 0.5;
+                }
+
+                Rectangle { min-height: 4px; }
+
+                choose-btn := Rectangle {
+                    background: #20FFFFFF;
+                    border-radius: 10px;
+                    width: 130px;
+                    height: 34px;
+                    border-width: 1px;
+                    border-color: #12FFFFFF;
+
+                    ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.choose-file(); }
+                    }
+
+                    Text {
+                        text: "Choose file";
+                        color: #FFFFFF;
+                        font-size: 12px;
+                        font-weight: 500;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    states [
+                        hover when ta.has-hover : {
+                            background: #30FFFFFF;
+                        }
+                    ]
+                }
+            }
+        }
+
+        if root.has-track : Rectangle {
+            background: #00000000;
+            VerticalBox {
+                spacing: 0px;
+                padding-left: 24px;
+                padding-right: 24px;
+                padding-top: 8px;
+                padding-bottom: 16px;
+
+                HorizontalBox {
+                    spacing: 14px;
+                    alignment: start;
+                    padding-left: 0px;
+                    padding-top: 4px;
+
+                    cover := Rectangle {
+                        background: @linear-gradient(135deg, #2A1040 0%, #1A1A2E 50%, #162040 100%);
+                        border-radius: 14px;
+                        width: 86px;
+                        height: 86px;
+                        border-width: 1px;
+                        border-color: #12FFFFFF;
+                    }
+
+                    VerticalBox {
+                        spacing: 4px;
+                        padding-top: 14px;
+
+                        Text {
+                            text: root.track-title;
+                            color: #FFFFFF;
+                            font-size: 15px;
+                            font-weight: 600;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: root.artist-name;
+                            color: #CCCCCC;
+                            font-size: 12px;
+                            opacity: 0.7;
+                            overflow: elide;
+                        }
+                    }
+                }
+
+                Rectangle { min-height: 10px; }
+
+                HorizontalBox {
+                    spacing: 10px;
+
+                    Text {
+                        text: "0:00";
+                        color: #999999;
+                        font-size: 10px;
+                        vertical-alignment: center;
+                        min-width: 34px;
+                    }
+
+                    progress-track := Rectangle {
+                        background: #20FFFFFF;
+                        border-radius: 3px;
+                        height: 4px;
+
+                        progress-fill := Rectangle {
+                            background: #BB88FF;
+                            border-radius: 3px;
+                            height: 4px;
+                        }
+                    }
+
+                    Text {
+                        text: "0:00";
+                        color: #999999;
+                        font-size: 10px;
+                        vertical-alignment: center;
+                        min-width: 34px;
+                    }
+                }
+
+                Rectangle { min-height: 14px; }
+
+                HorizontalBox {
+                    spacing: 12px;
+                    alignment: center;
+
+                    pp-btn := Rectangle {
+                        background: #FFFFFF;
+                        border-radius: 20px;
+                        width: 38px;
+                        height: 38px;
+
+                        ta-pp := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.play-pause-clicked(); }
+                        }
+
+                        Text {
+                            text: root.is-playing ? "⏸" : "▶";
+                            color: #111116;
+                            font-size: 14px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        states [
+                            hover when ta-pp.has-hover : {
+                                background: #F0F0F0;
+                            }
+                        ]
+                    }
+
+                    Rectangle { min-width: 20px; }
+
+                    mute-btn := Rectangle {
+                        width: 22px;
+                        height: 22px;
+                        background: #00000000;
+                        border-radius: 4px;
+
+                        ta-mute := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.mute-toggled(); }
+                        }
+
+                        Text {
+                            text: root.is-muted ? "M" : "V";
+                            color: root.is-muted ? #CC3333 : #999999;
+                            font-size: 9px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        states [
+                            hover when ta-mute.has-hover : {
+                                background: #15FFFFFF;
+                            }
+                        ]
+                    }
+
+                    vol-track := Rectangle {
+                        background: #15FFFFFF;
+                        border-radius: 3px;
+                        width: 70px;
+                        height: 3px;
+
+                        vol-fill := Rectangle {
+                            background: #999999;
+                            border-radius: 3px;
+                            height: 3px;
+                        }
+                    }
                 }
             }
         }

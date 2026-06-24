@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, TryLockError};
 use std::thread;
 use std::time::Duration;
 
@@ -131,10 +131,13 @@ impl AudioEngine {
         let rb = HeapRb::<f32>::new(262144);
         let (producer, consumer) = rb.split();
 
-        // Wrap consumer/producer in Arc<Mutex> to satisfy Rust's move semantics
-        // Lock is uncontested, held only during pop/push (~ns). TODO: revisit for perf
+        // Consumer requires &mut self for pop_slice (per-consumer cached index via Cell).
+        // Shared across F32/I16 callback branches via Arc<Mutex>. Lock is uncontested:
+        // the decode thread holds producer briefly and both callbacks never run concurrently
+        // (CPAL fires serially). try_lock ensures zero blocking.
         let producer = Arc::new(std::sync::Mutex::new(producer));
         let consumer = Arc::new(std::sync::Mutex::new(consumer));
+        let underruns = Arc::new(AtomicU64::new(0));
 
         let is_playing_cb = is_playing.clone();
         let is_playing_cb2 = is_playing.clone();
@@ -142,6 +145,8 @@ impl AudioEngine {
         let err_event_tx2 = event_tx.clone();
         let consumer_cb = consumer.clone();
         let consumer_cb2 = consumer.clone();
+        let underruns_cb = underruns.clone();
+        let underruns_cb2 = underruns.clone();
 
         let stream_result = match config.sample_format() {
             cpal::SampleFormat::F32 => device.build_output_stream(
@@ -151,11 +156,21 @@ impl AudioEngine {
                         data.fill(0.0);
                         return;
                     }
-                    let mut guard = consumer_cb.lock().unwrap();
-                    let read = guard.pop_slice(data);
-                    drop(guard);
-                    if read < data.len() {
-                        data[read..].fill(0.0);
+                    match consumer_cb.try_lock() {
+                        Ok(mut guard) => {
+                            let read = guard.pop_slice(data);
+                            if read < data.len() {
+                                underruns_cb.fetch_add(1, Ordering::Relaxed);
+                                data[read..].fill(0.0);
+                            }
+                        }
+                        Err(TryLockError::WouldBlock) => {
+                            underruns_cb.fetch_add(1, Ordering::Relaxed);
+                            data.fill(0.0);
+                        }
+                        Err(TryLockError::Poisoned(_)) => {
+                            data.fill(0.0);
+                        }
                     }
                 },
                 move |err| {
@@ -170,23 +185,30 @@ impl AudioEngine {
                         data.fill(0);
                         return;
                     }
-                    let mut tmp = [0.0f32; 4096];
-                    let mut offset = 0;
-                    while offset < data.len() {
-                        let chunk = std::cmp::min(data.len() - offset, tmp.len());
-                        let mut guard = consumer_cb2.lock().unwrap();
-                        let read = guard.pop_slice(&mut tmp[..chunk]);
-                        drop(guard);
-                        for i in 0..read {
-                            data[offset + i] = (tmp[i].clamp(-1.0, 1.0) * 32767.0) as i16;
-                        }
-                        if read < chunk {
-                            for i in read..chunk {
-                                data[offset + i] = 0;
+                    match consumer_cb2.try_lock() {
+                        Ok(mut guard) => {
+                            let mut tmp = [0.0f32; 4096];
+                            let mut offset = 0;
+                            while offset < data.len() {
+                                let chunk = std::cmp::min(data.len() - offset, tmp.len());
+                                let read = guard.pop_slice(&mut tmp[..chunk]);
+                                for i in 0..read {
+                                    data[offset + i] = (tmp[i].clamp(-1.0, 1.0) * 32767.0) as i16;
+                                }
+                                if read < chunk {
+                                    underruns_cb2.fetch_add(1, Ordering::Relaxed);
+                                    for i in read..chunk {
+                                        data[offset + i] = 0;
+                                    }
+                                    break;
+                                }
+                                offset += read;
                             }
-                            break;
                         }
-                        offset += read;
+                        Err(_) => {
+                            underruns_cb2.fetch_add(1, Ordering::Relaxed);
+                            data.fill(0);
+                        }
                     }
                 },
                 move |err| {
@@ -266,6 +288,7 @@ impl AudioEngine {
                     let evt = event_tx.clone();
                     let st = state.clone();
                     let producer_dec = producer.clone();
+                    let _underrun_dec = underruns.clone();
 
                     is_playing.store(true, Ordering::SeqCst);
                     Self::set_state(&state, &event_tx, PlaybackState::Playing);
@@ -303,17 +326,14 @@ impl AudioEngine {
                                         if !ip.load(Ordering::SeqCst) {
                                             break;
                                         }
-                                        let mut prod_guard = producer_dec.lock().unwrap();
-                                        let vacant = prod_guard.vacant_len();
+                                        let mut producer = producer_dec.lock().unwrap();
+                                        let vacant = producer.vacant_len();
                                         if vacant == 0 {
-                                            drop(prod_guard);
                                             thread::sleep(Duration::from_millis(5));
                                             continue;
                                         }
                                         let end = std::cmp::min(offset + vacant, resampled.len());
-                                        let written =
-                                            prod_guard.push_slice(&resampled[offset..end]);
-                                        drop(prod_guard);
+                                        let written = producer.push_slice(&resampled[offset..end]);
                                         offset += written;
                                     }
 
@@ -328,6 +348,22 @@ impl AudioEngine {
                                     let _ = evt.send(AudioEvent::PositionUpdated(secs));
                                 }
                                 Ok(None) => {
+                                    let flushed = resampler.flush();
+                                    if !flushed.is_empty() {
+                                        let mut producer = producer_dec.lock().unwrap();
+                                        let mut offset = 0;
+                                        while offset < flushed.len() {
+                                            let vacant = producer.vacant_len();
+                                            if vacant == 0 {
+                                                thread::sleep(Duration::from_millis(5));
+                                                continue;
+                                            }
+                                            let end = std::cmp::min(offset + vacant, flushed.len());
+                                            let written =
+                                                producer.push_slice(&flushed[offset..end]);
+                                            offset += written;
+                                        }
+                                    }
                                     ip.store(false, Ordering::SeqCst);
                                     let _ = st.lock().map(|mut s| *s = PlaybackState::Ended);
                                     let _ =

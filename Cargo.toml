@@ -6,12 +6,14 @@ description = "DIAVLO PLAYER: ultra-lightweight native audio player for Windows"
 rust-version = "1.85"
 
 [dependencies]
-slint = { version = "1.17.0", features = ["renderer-femtovg", "renderer-software"] }
+slint = { version = "1.17.0", features = ["renderer-femtovg", "renderer-software", "raw-window-handle-06"] }
 cpal = "0.18.1"
 symphonia = { version = "0.6.0", features = ["wav", "pcm", "aiff", "isomp4", "mp3", "flac", "vorbis", "alac", "aac"] }
 symphonia-core = "0.6.0"
 symphonia-adapter-libopus = "0.3.0"
 ringbuf = "0.5.0"
+raw-window-handle = "0.6"
+rfd = "0.15"
 rubato = "3.0.0"
 log = "0.4"
 simplelog = "0.12"
