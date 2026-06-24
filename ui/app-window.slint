@@ -1,0 +1,57 @@
+import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "DIAVLO PLAYER (Vertical Slice)";
+    width: 450px;
+    height: 180px;
+    background: #0B0B0C;
+    default-font-size: 14px;
+
+    in property <string> track-title: "No file loaded";
+    in property <string> status-text: "Stopped";
+    in property <bool> is-playing: false;
+
+    callback play-pause-clicked();
+
+    VerticalBox {
+        alignment: center;
+        spacing: 15px;
+        padding: 20px;
+
+        // Title and Info
+        VerticalBox {
+            spacing: 4px;
+            alignment: center;
+            
+            Text {
+                text: root.track-title;
+                color: #F3F4F6;
+                font-size: 16px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+
+            Text {
+                text: root.status-text;
+                color: #9CA3AF;
+                font-size: 12px;
+                horizontal-alignment: center;
+            }
+        }
+
+        // Control Button
+        HorizontalBox {
+            alignment: center;
+            
+            Button {
+                text: root.is-playing ? "PAUSE" : "PLAY";
+                width: 120px;
+                height: 35px;
+                clicked => {
+                    root.play-pause-clicked();
+                }
+            }
+        }
+    }
+}

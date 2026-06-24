@@ -1,0 +1,26 @@
+[package]
+name = "diavlo-player"
+version = "0.1.0"
+edition = "2021"
+description = "DIAVLO PLAYER: ultra-lightweight native audio player for Windows"
+rust-version = "1.85"
+
+[dependencies]
+slint = { version = "1.17.0", features = ["renderer-femtovg", "renderer-software"] }
+cpal = "0.18.1"
+symphonia = { version = "0.6.0", features = ["wav", "pcm", "aiff", "isomp4"] }
+symphonia-core = "0.6.0"
+ringbuf = "0.5.0"
+rubato = "3.0.0"
+log = "0.4"
+simplelog = "0.12"
+
+[build-dependencies]
+slint-build = "1.17.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
