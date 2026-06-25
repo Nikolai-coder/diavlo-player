@@ -32,6 +32,7 @@ pub enum AudioCommand {
 pub enum AudioEvent {
     StateChanged(PlaybackState),
     DurationLoaded(f64),
+    MetadataLoaded { title: String, artist: String, album: String },
     StreamReady,
     FirstSampleEnqueued,
     PositionUpdated(f64),
@@ -265,6 +266,14 @@ impl AudioEngine {
                     if let Some(dur) = decoder.total_duration() {
                         let _ = event_tx.send(AudioEvent::DurationLoaded(dur));
                     }
+
+                    // Send metadata
+                    let md = decoder.metadata();
+                    let _ = event_tx.send(AudioEvent::MetadataLoaded {
+                        title: md.title.clone().unwrap_or_default(),
+                        artist: md.artist.clone().unwrap_or_default(),
+                        album: md.album.clone().unwrap_or_default(),
+                    });
 
                     let src_rate = decoder.sample_rate();
                     let src_ch = decoder.channels();

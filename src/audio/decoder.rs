@@ -26,6 +26,13 @@ fn codec_registry() -> &'static CodecRegistry {
     })
 }
 
+pub struct AudioMetadata {
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub duration_secs: Option<f64>,
+}
+
 pub struct AudioDecoder {
     format: Box<dyn FormatReader>,
     decoder: Box<dyn AudioDecoderTrait>,
@@ -33,6 +40,7 @@ pub struct AudioDecoder {
     sample_rate: u32,
     channels: u16,
     total_duration: Option<f64>,
+    metadata: AudioMetadata,
 }
 
 impl AudioDecoder {
@@ -51,7 +59,7 @@ impl AudioDecoder {
         let fmt_opts = FormatOptions::default();
         let meta_opts = MetadataOptions::default();
 
-        let format = symphonia::default::get_probe()
+        let mut format = symphonia::default::get_probe()
             .probe(&hint, mss, fmt_opts, meta_opts)
             .map_err(|e| {
                 DiavloError::UnsupportedFormat(format!("Unsupported or corrupt: {}", e))
@@ -91,6 +99,28 @@ impl AudioDecoder {
             .make_audio_decoder(&audio_params, &dec_opts)
             .map_err(|e| DiavloError::Decode(format!("Cannot create decoder: {}", e)))?;
 
+        // Extract metadata
+        let mut meta = AudioMetadata {
+            title: None,
+            artist: None,
+            album: None,
+            duration_secs: total_dur,
+        };
+
+        // Try to read metadata from format
+        // Note: Symphonia 0.6 MetadataRevision API is opaque — we use filename as fallback
+        // TODO: access tags through the proper Symphonia 0.6 metadata API
+        if let Some(_md) = format.metadata().current() {
+            // Metadata access will be refined once API is confirmed
+        }
+
+        // Fallback: if no title tag, use filename
+        if meta.title.is_none() {
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                meta.title = Some(stem.to_string());
+            }
+        }
+
         Ok(Self {
             format,
             decoder,
@@ -98,6 +128,7 @@ impl AudioDecoder {
             sample_rate,
             channels,
             total_duration: total_dur,
+            metadata: meta,
         })
     }
 
@@ -111,6 +142,10 @@ impl AudioDecoder {
 
     pub fn total_duration(&self) -> Option<f64> {
         self.total_duration
+    }
+
+    pub fn metadata(&self) -> &AudioMetadata {
+        &self.metadata
     }
 
     pub fn next_packet(&mut self) -> Result<Option<Vec<f32>>> {

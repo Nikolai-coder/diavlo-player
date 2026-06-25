@@ -2,11 +2,12 @@ import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "DIAVLO PLAYER";
-    background: #CC111116;
+    background: #E8111116;
     default-font-size: 13px;
 
-    in property <string> track-title: "";
+    in property <string> track-title: "No track";
     in property <string> artist-name: "";
+    in property <string> album-name: "";
     in property <string> status-text: "Stopped";
     in property <bool> is-playing: false;
     in property <bool> has-track: false;
@@ -14,6 +15,8 @@ export component AppWindow inherits Window {
     in property <float> total-secs: 0.0;
     in property <float> volume: 0.8;
     in property <bool> is-muted: false;
+    in property <string> position-text: "0:00";
+    in property <string> duration-text: "0:00";
 
     callback play-pause-clicked();
     callback choose-file();
@@ -26,391 +29,402 @@ export component AppWindow inherits Window {
     callback files-dropped([string]);
     callback set-as-default();
 
-    min-width: 420px;
-    min-height: 280px;
-    preferred-width: 460px;
-    preferred-height: 360px;
+    min-width: 480px;
+    min-height: 190px;
+    preferred-width: 560px;
+    preferred-height: 220px;
 
+    // ── Root layout ────────────────────────────────────
     VerticalBox {
         spacing: 0px;
 
-        // ── Title bar ────────────────────────────────────
+        // ── Title bar ──────────────────────────────────
         Rectangle {
-            min-height: 36px;
-            max-height: 36px;
+            min-height: 32px;
+            max-height: 32px;
             background: #00000000;
 
             HorizontalBox {
-                padding-left: 16px;
-                padding-right: 12px;
-                padding-top: 6px;
+                padding-left: 14px;
+                padding-right: 10px;
+                padding-top: 4px;
                 alignment: start;
 
                 Text {
                     text: "DIAVLO PLAYER";
                     color: #FFFFFF;
                     font-weight: 600;
-                    font-size: 12px;
+                    font-size: 11px;
                     vertical-alignment: center;
+                    opacity: 0.7;
                 }
 
-                Rectangle {
+                Rectangle { background: #00000000; }
+
+                // Settings gear
+                gear-btn := Rectangle {
+                    width: 24px;
+                    height: 24px;
                     background: #00000000;
-                }
+                    border-radius: 5px;
 
-                Rectangle {
-                    background: #00000000;
-                    min-width: 90px;
-
-                    HorizontalBox {
-                        spacing: 4px;
-                        alignment: end;
-                        padding-right: 4px;
-
-                        min-btn := Rectangle {
-                            width: 28px;
-                            height: 28px;
-                            background: #00000000;
-                            border-radius: 6px;
-
-                            ta-min := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => { root.minimize-window(); }
-                            }
-
-                            Text {
-                                text: "─";
-                                color: #CCCCCC;
-                                font-size: 12px;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-
-                            states [
-                                hover when ta-min.has-hover : {
-                                    background: #20FFFFFF;
-                                }
-                            ]
-                        }
-
-                        max-btn := Rectangle {
-                            width: 28px;
-                            height: 28px;
-                            background: #00000000;
-                            border-radius: 6px;
-
-                            ta-max := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => { root.maximize-window(); }
-                            }
-
-                            Text {
-                                text: "▢";
-                                color: #CCCCCC;
-                                font-size: 14px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-
-                            states [
-                                hover when ta-max.has-hover : {
-                                    background: #20FFFFFF;
-                                }
-                            ]
-                        }
-
-                        close-btn := Rectangle {
-                            width: 28px;
-                            height: 28px;
-                            background: #00000000;
-                            border-radius: 6px;
-
-                            ta-close := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => { root.close-window(); }
-                            }
-
-                            Text {
-                                text: "✕";
-                                color: #CCCCCC;
-                                font-size: 13px;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-
-                            states [
-                                hover when ta-close.has-hover : {
-                                    background: #CC3333;
-                                }
-                            ]
-                        }
+                    ta-gear := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.set-as-default(); }
                     }
+
+                    Text {
+                        text: "⚙";
+                        color: #888888;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    states [
+                        hover when ta-gear.has-hover : {
+                            background: #15FFFFFF;
+                        }
+                    ]
+                }
+
+                Rectangle { background: #00000000; min-width: 4px; }
+
+                min-btn := Rectangle {
+                    width: 26px;
+                    height: 24px;
+                    background: #00000000;
+                    border-radius: 5px;
+
+                    ta-min := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.minimize-window(); }
+                    }
+
+                    Text {
+                        text: "─";
+                        color: #AAAAAA;
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    states [
+                        hover when ta-min.has-hover : { background: #20FFFFFF; }
+                    ]
+                }
+
+                close-btn := Rectangle {
+                    width: 26px;
+                    height: 24px;
+                    background: #00000000;
+                    border-radius: 5px;
+
+                    ta-close := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.close-window(); }
+                    }
+
+                    Text {
+                        text: "✕";
+                        color: #AAAAAA;
+                        font-size: 12px;
+                        font-weight: 600;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    states [
+                        hover when ta-close.has-hover : { background: #CC3333; }
+                    ]
                 }
             }
         }
 
-        // ── Empty state ──────────────────────────────────
+        // ── Empty state (no file) ──────────────────────
         if !root.has-track : Rectangle {
             background: #00000000;
             VerticalBox {
-                spacing: 12px;
+                spacing: 10px;
                 alignment: center;
-                padding-top: 30px;
-                padding-bottom: 40px;
-
-                Rectangle { min-height: 10px; }
+                padding-top: 10px;
+                padding-bottom: 20px;
 
                 Text {
                     text: "♫";
                     color: #FFFFFF;
-                    font-size: 36px;
+                    font-size: 28px;
                     horizontal-alignment: center;
-                    opacity: 0.25;
+                    opacity: 0.2;
                 }
 
                 Text {
-                    text: "Drop your music here";
+                    text: "Open an audio file";
                     color: #FFFFFF;
-                    font-size: 16px;
+                    font-size: 14px;
                     font-weight: 600;
                     horizontal-alignment: center;
                 }
 
                 Text {
                     text: "WAV · FLAC · MP3 · AAC · OGG · AIFF";
-                    color: #CCCCCC;
-                    font-size: 11px;
+                    color: #999999;
+                    font-size: 10px;
                     horizontal-alignment: center;
                     opacity: 0.5;
                 }
 
-                Rectangle { min-height: 4px; }
+                Rectangle { min-height: 2px; }
 
-                HorizontalBox {
-                    spacing: 10px;
-                    alignment: center;
+                choose-btn := Rectangle {
+                    background: #20FFFFFF;
+                    border-radius: 8px;
+                    width: 120px;
+                    height: 30px;
+                    border-width: 1px;
+                    border-color: #12FFFFFF;
 
-                    choose-btn := Rectangle {
-                        background: #20FFFFFF;
-                        border-radius: 10px;
-                        width: 130px;
-                        height: 34px;
-                        border-width: 1px;
-                        border-color: #12FFFFFF;
-
-                        ta := TouchArea {
-                            mouse-cursor: pointer;
-                            clicked => { root.choose-file(); }
-                        }
-
-                        Text {
-                            text: "Choose file";
-                            color: #FFFFFF;
-                            font-size: 12px;
-                            font-weight: 500;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-
-                        states [
-                            hover when ta.has-hover : {
-                                background: #30FFFFFF;
-                            }
-                        ]
+                    ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.choose-file(); }
                     }
 
-                    default-btn := Rectangle {
-                        background: #00000000;
-                        border-radius: 10px;
-                        height: 34px;
-                        border-width: 1px;
-                        border-color: #12FFFFFF;
-                        min-width: 140px;
-
-                        ta-def := TouchArea {
-                            mouse-cursor: pointer;
-                            clicked => { root.set-as-default(); }
-                        }
-
-                        Text {
-                            text: "Set as default player";
-                            color: #BB88FF;
-                            font-size: 11px;
-                            font-weight: 500;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-
-                        states [
-                            hover when ta-def.has-hover : {
-                                background: #15FFFFFF;
-                            }
-                        ]
+                    Text {
+                        text: "Choose file";
+                        color: #FFFFFF;
+                        font-size: 11px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
+
+                    states [
+                        hover when ta.has-hover : { background: #30FFFFFF; }
+                    ]
                 }
             }
         }
 
-        // ── Player state ─────────────────────────────────
+        // ── Now Playing (has track) ────────────────────
         if root.has-track : Rectangle {
             background: #00000000;
-            VerticalBox {
-                spacing: 0px;
-                padding-left: 24px;
-                padding-right: 24px;
-                padding-top: 8px;
-                padding-bottom: 16px;
+            HorizontalBox {
+                spacing: 16px;
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 4px;
+                padding-bottom: 14px;
 
-                HorizontalBox {
-                    spacing: 14px;
-                    alignment: start;
-                    padding-left: 0px;
-                    padding-top: 4px;
+                // ── Cover art ───────────────────────────
+                cover := Rectangle {
+                    background: @linear-gradient(135deg, #2A1040 0%, #1A1A2E 50%, #162040 100%);
+                    border-radius: 10px;
+                    width: 90px;
+                    height: 90px;
+                    border-width: 1px;
+                    border-color: #10FFFFFF;
 
-                    cover := Rectangle {
-                        background: @linear-gradient(135deg, #2A1040 0%, #1A1A2E 50%, #162040 100%);
-                        border-radius: 14px;
-                        width: 86px;
-                        height: 86px;
-                        border-width: 1px;
-                        border-color: #12FFFFFF;
-                    }
-
-                    VerticalBox {
-                        spacing: 4px;
-                        padding-top: 14px;
-
-                        Text {
-                            text: root.track-title;
-                            color: #FFFFFF;
-                            font-size: 15px;
-                            font-weight: 600;
-                            overflow: elide;
-                        }
-
-                        Text {
-                            text: root.artist-name;
-                            color: #CCCCCC;
-                            font-size: 12px;
-                            opacity: 0.7;
-                            overflow: elide;
-                        }
+                    Text {
+                        text: "♫";
+                        color: #FFFFFF;
+                        font-size: 28px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        opacity: 0.15;
                     }
                 }
 
-                Rectangle { min-height: 10px; }
+                // ── Info + controls ────────────────────
+                VerticalBox {
+                    spacing: 4px;
+                    padding-top: 2px;
 
-                // ── Progress bar ─────────────────────────
-                HorizontalBox {
-                    spacing: 10px;
-
+                    // Track info
                     Text {
-                        text: "0:00";
-                        color: #999999;
-                        font-size: 10px;
-                        vertical-alignment: center;
-                        min-width: 34px;
-                    }
-
-                    progress-track := Rectangle {
-                        background: #20FFFFFF;
-                        border-radius: 3px;
-                        height: 4px;
-
-                        progress-fill := Rectangle {
-                            background: #BB88FF;
-                            border-radius: 3px;
-                            height: 4px;
-                        }
+                        text: root.track-title;
+                        color: #FFFFFF;
+                        font-size: 14px;
+                        font-weight: 600;
+                        overflow: elide;
                     }
 
                     Text {
-                        text: "0:00";
+                        text: root.artist-name;
+                        color: #CCCCCC;
+                        font-size: 11px;
+                        opacity: 0.7;
+                        overflow: elide;
+                        visible: root.artist-name != "";
+                    }
+
+                    Text {
+                        text: root.album-name;
                         color: #999999;
                         font-size: 10px;
-                        vertical-alignment: center;
-                        min-width: 34px;
-                    }
-                }
-
-                Rectangle { min-height: 14px; }
-
-                // ── Controls ─────────────────────────────
-                HorizontalBox {
-                    spacing: 12px;
-                    alignment: center;
-
-                    pp-btn := Rectangle {
-                        background: #FFFFFF;
-                        border-radius: 20px;
-                        width: 38px;
-                        height: 38px;
-
-                        ta-pp := TouchArea {
-                            mouse-cursor: pointer;
-                            clicked => { root.play-pause-clicked(); }
-                        }
-
-                        Text {
-                            text: root.is-playing ? "⏸" : "▶";
-                            color: #111116;
-                            font-size: 14px;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-
-                        states [
-                            hover when ta-pp.has-hover : {
-                                background: #F0F0F0;
-                            }
-                        ]
+                        opacity: 0.5;
+                        overflow: elide;
+                        visible: root.album-name != "";
                     }
 
-                    Rectangle { min-width: 20px; }
+                    Rectangle { min-height: 2px; }
 
-                    mute-btn := Rectangle {
-                        width: 22px;
-                        height: 22px;
-                        background: #00000000;
-                        border-radius: 4px;
-
-                        ta-mute := TouchArea {
-                            mouse-cursor: pointer;
-                            clicked => { root.mute-toggled(); }
-                        }
+                    // ── Progress bar ─────────────────────
+                    HorizontalBox {
+                        spacing: 8px;
 
                         Text {
-                            text: root.is-muted ? "M" : "V";
-                            color: root.is-muted ? #CC3333 : #999999;
+                            text: root.position-text;
+                            color: #999999;
                             font-size: 9px;
-                            font-weight: 600;
-                            horizontal-alignment: center;
                             vertical-alignment: center;
+                            min-width: 30px;
                         }
 
-                        states [
-                            hover when ta-mute.has-hover : {
-                                background: #15FFFFFF;
+                        progress-track := Rectangle {
+                            background: #15FFFFFF;
+                            border-radius: 2px;
+                            height: 3px;
+
+                            progress-fill := Rectangle {
+                                background: #BB88FF;
+                                border-radius: 2px;
+                                height: 3px;
+                                width: parent.width * (root.position-secs / max(root.total-secs, 1.0));
                             }
-                        ]
+                        }
+
+                        Text {
+                            text: root.duration-text;
+                            color: #999999;
+                            font-size: 9px;
+                            vertical-alignment: center;
+                            min-width: 30px;
+                        }
                     }
 
-                    vol-track := Rectangle {
-                        background: #15FFFFFF;
-                        border-radius: 3px;
-                        width: 70px;
-                        height: 3px;
+                    Rectangle { min-height: 4px; }
 
-                        vol-fill := Rectangle {
-                            background: #999999;
-                            border-radius: 3px;
+                    // ── Controls row ─────────────────────
+                    HorizontalBox {
+                        spacing: 10px;
+                        alignment: center;
+
+                        // Previous (decorative for now)
+                        prev-btn := Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            background: #00000000;
+                            border-radius: 14px;
+
+                            ta-prev := TouchArea {
+                                mouse-cursor: pointer;
+                            }
+
+                            Text {
+                                text: "⏮";
+                                color: #888888;
+                                font-size: 13px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-prev.has-hover : { background: #15FFFFFF; }
+                            ]
+                        }
+
+                        // Play/Pause
+                        pp-btn := Rectangle {
+                            background: #FFFFFF;
+                            border-radius: 16px;
+                            width: 32px;
+                            height: 32px;
+
+                            ta-pp := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.play-pause-clicked(); }
+                            }
+
+                            Text {
+                                text: root.is-playing ? "⏸" : "▶";
+                                color: #111116;
+                                font-size: 12px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-pp.has-hover : { background: #F0F0F0; }
+                            ]
+                        }
+
+                        // Next (decorative for now)
+                        next-btn := Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            background: #00000000;
+                            border-radius: 14px;
+
+                            ta-next := TouchArea {
+                                mouse-cursor: pointer;
+                            }
+
+                            Text {
+                                text: "⏭";
+                                color: #888888;
+                                font-size: 13px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-next.has-hover : { background: #15FFFFFF; }
+                            ]
+                        }
+
+                        Rectangle { min-width: 12px; }
+
+                        // Volume
+                        mute-btn := Rectangle {
+                            width: 22px;
+                            height: 22px;
+                            background: #00000000;
+                            border-radius: 4px;
+
+                            ta-mute := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.mute-toggled(); }
+                            }
+
+                            Text {
+                                text: root.is-muted ? "🔇" : "🔊";
+                                color: #999999;
+                                font-size: 11px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+
+                            states [
+                                hover when ta-mute.has-hover : { background: #15FFFFFF; }
+                            ]
+                        }
+
+                        vol-track := Rectangle {
+                            background: #15FFFFFF;
+                            border-radius: 2px;
+                            width: 60px;
                             height: 3px;
+
+                            vol-fill := Rectangle {
+                                background: #888888;
+                                border-radius: 2px;
+                                height: 3px;
+                                width: parent.width * root.volume;
+                            }
                         }
                     }
                 }
             }
         }
     }
+
 }
