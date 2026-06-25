@@ -316,7 +316,7 @@ Found a bug or have an idea that fits the project?
 
 DIAVLO PLAYER is proprietary software.
 
-**All rights reserved.** Copying, redistributing, modifying, sublicensing or commercializing the software or its source code is not permitted without express authorization from its owners.
+**All rights reserved.** Copying, redistributing, modifying, sublicensing or commercializing the software or its source code is not permitted without express authorization from Diavlo.
 
 <br>
 
