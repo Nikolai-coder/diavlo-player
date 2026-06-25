@@ -1,12 +1,13 @@
 <div align="center">
 
-# DIAVLO PLAYER
+<img src="assets/diavlo-player-banner.gif" width="100%" alt="DIAVLO PLAYER animated banner">
 
-### Tu música. Sin ruido. Sin peso. Solo flow.  
-### Your music. No noise. No bloat. Just flow.
+<br>
 
-Un reproductor de audio nativo para Windows, construido para sentirse rápido, limpio y oscuro.  
-A native Windows audio player built to feel fast, clean and dark.
+<img
+  src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=22&duration=2600&pause=900&color=A855F7&center=true&vCenter=true&width=900&lines=Tu+m%C3%BAsica.+Sin+ruido.+Sin+peso.+Solo+flow.;Your+music.+No+noise.+No+bloat.+Just+flow.;Native.+Fast.+Dark."
+  alt="Animated DIAVLO PLAYER tagline"
+/>
 
 <br>
 
@@ -35,11 +36,19 @@ A native Windows audio player built to feel fast, clean and dark.
 
 **DIAVLO PLAYER** es un reproductor de audio moderno para Windows con una interfaz oscura de cristal, una arquitectura nativa y una filosofía sencilla:
 
-> Abrir. Soltar. Escuchar.
+> **Abrir. Soltar. Escuchar.**
 
 Sin una interfaz inflada. Sin capas innecesarias. Sin romper el ritmo.
 
----
+<div align="center">
+
+<img
+  src="https://capsule-render.vercel.app/api?type=rect&height=3&color=gradient&customColorList=12,20,24"
+  width="100%"
+  alt=""
+/>
+
+</div>
 
 ## ✦ Características
 
@@ -50,16 +59,25 @@ Sin una interfaz inflada. Sin capas innecesarias. Sin romper el ritmo.
 | 🖱️ | **Arrastrar y soltar** | Suelta un archivo de audio directamente sobre la ventana y empieza a escuchar. |
 | ⌨️ | **Uso desde terminal** | Abre y reproduce canciones pasando la ruta del archivo desde la línea de comandos. |
 | 🔗 | **Asociaciones de archivos** | Puede registrarse en Windows como reproductor para formatos de audio compatibles. |
-| 🪶 | **Ligero por diseño** | Binario compacto y consumo contenido para no convertir escuchar música en una misión espacial. |
+| 🪶 | **Ligero por diseño** | Binario compacto y consumo contenido. Escuchar música no debería arrancar un reactor nuclear. |
 | 🦀 | **Nativo y rápido** | Construido con Rust y tecnologías enfocadas en rendimiento y seguridad. |
 
 ---
 
 ## 🎵 Formatos compatibles
 
-```text
-WAV · FLAC · MP3 · AAC · OGG · OPUS · AIFF · M4A
-```
+<div align="center">
+
+![WAV](https://img.shields.io/badge/WAV-111111?style=for-the-badge)
+![FLAC](https://img.shields.io/badge/FLAC-111111?style=for-the-badge)
+![MP3](https://img.shields.io/badge/MP3-111111?style=for-the-badge)
+![AAC](https://img.shields.io/badge/AAC-111111?style=for-the-badge)
+![OGG](https://img.shields.io/badge/OGG-111111?style=for-the-badge)
+![OPUS](https://img.shields.io/badge/OPUS-111111?style=for-the-badge)
+![AIFF](https://img.shields.io/badge/AIFF-111111?style=for-the-badge)
+![M4A](https://img.shields.io/badge/M4A-111111?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -67,7 +85,11 @@ WAV · FLAC · MP3 · AAC · OGG · OPUS · AIFF · M4A
 
 La versión más reciente está disponible en **GitHub Releases**:
 
-### [Descargar DIAVLO PLAYER](https://github.com/Nikolai-coder/diavlo-player/releases/latest)
+<div align="center">
+
+### [⚡ Descargar DIAVLO PLAYER](https://github.com/Nikolai-coder/diavlo-player/releases/latest)
+
+</div>
 
 Para la versión portable:
 
@@ -153,27 +175,25 @@ DIAVLO PLAYER es software propietario.
 
 ---
 
-<div align="center">
-
-### Hecho para quienes quieren escuchar música, no esperar a que abra el reproductor.
-
-**DIAVLO PLAYER**
-
-</div>
-
----
-
 # 🇬🇧 English
 
 ## Music comes first
 
 **DIAVLO PLAYER** is a modern audio player for Windows with a dark glass interface, a native architecture and one simple philosophy:
 
-> Open. Drop. Listen.
+> **Open. Drop. Listen.**
 
 No bloated interface. No unnecessary layers. No broken flow.
 
----
+<div align="center">
+
+<img
+  src="https://capsule-render.vercel.app/api?type=rect&height=3&color=gradient&customColorList=12,20,24"
+  width="100%"
+  alt=""
+/>
+
+</div>
 
 ## ✦ Features
 
@@ -184,16 +204,25 @@ No bloated interface. No unnecessary layers. No broken flow.
 | 🖱️ | **Drag and drop** | Drop an audio file directly onto the window and start listening. |
 | ⌨️ | **Command-line support** | Open and play tracks by passing a file path from the terminal. |
 | 🔗 | **File associations** | Can register with Windows as a player for supported audio formats. |
-| 🪶 | **Lightweight by design** | A compact binary and restrained resource usage without turning music playback into a space mission. |
+| 🪶 | **Lightweight by design** | Compact and restrained. Playing music should not launch a nuclear reactor. |
 | 🦀 | **Native and fast** | Built with Rust and technologies focused on performance and safety. |
 
 ---
 
 ## 🎵 Supported formats
 
-```text
-WAV · FLAC · MP3 · AAC · OGG · OPUS · AIFF · M4A
-```
+<div align="center">
+
+![WAV](https://img.shields.io/badge/WAV-111111?style=for-the-badge)
+![FLAC](https://img.shields.io/badge/FLAC-111111?style=for-the-badge)
+![MP3](https://img.shields.io/badge/MP3-111111?style=for-the-badge)
+![AAC](https://img.shields.io/badge/AAC-111111?style=for-the-badge)
+![OGG](https://img.shields.io/badge/OGG-111111?style=for-the-badge)
+![OPUS](https://img.shields.io/badge/OPUS-111111?style=for-the-badge)
+![AIFF](https://img.shields.io/badge/AIFF-111111?style=for-the-badge)
+![M4A](https://img.shields.io/badge/M4A-111111?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -201,7 +230,11 @@ WAV · FLAC · MP3 · AAC · OGG · OPUS · AIFF · M4A
 
 The latest version is available from **GitHub Releases**:
 
-### [Download DIAVLO PLAYER](https://github.com/Nikolai-coder/diavlo-player/releases/latest)
+<div align="center">
+
+### [⚡ Download DIAVLO PLAYER](https://github.com/Nikolai-coder/diavlo-player/releases/latest)
+
+</div>
 
 For the portable version:
 
@@ -285,18 +318,14 @@ DIAVLO PLAYER is proprietary software.
 
 **All rights reserved.** Copying, redistributing, modifying, sublicensing or commercializing the software or its source code is not permitted without express authorization from its owners.
 
----
+<br>
 
 <div align="center">
 
-### Built for people who want to hear the music, not wait for the player.
-
-**DIAVLO PLAYER**
-
-<br>
-
-[Download](https://github.com/Nikolai-coder/diavlo-player/releases/latest) ·
-[Issues](https://github.com/Nikolai-coder/diavlo-player/issues) ·
-[Repository](https://github.com/Nikolai-coder/diavlo-player)
+<img
+  src="https://capsule-render.vercel.app/api?type=waving&height=160&section=footer&color=gradient&customColorList=12,20,24&text=DIAVLO%20PLAYER&fontColor=ffffff&fontSize=26&animation=fadeIn"
+  width="100%"
+  alt="DIAVLO PLAYER animated footer"
+/>
 
 </div>
