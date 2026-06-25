@@ -8,7 +8,7 @@ use std::time::Instant;
 use slint::ComponentHandle;
 
 use diavlo_player::audio::engine::{AudioCommand, AudioEngine, AudioEvent, PlaybackState};
-use diavlo_player::platform::windows;
+use diavlo_player::platform::{registry, windows};
 
 slint::include_modules!();
 
@@ -112,6 +112,15 @@ fn main() {
     let w_mute = window_weak.clone();
     window.on_mute_toggled(move || {
         if let Some(w) = w_mute.upgrade() { w.set_is_muted(!w.get_is_muted()); }
+    });
+
+    // Set as default player
+    window.on_set_as_default(|| {
+        match unsafe { registry::register_file_associations() } {
+            Ok(()) => log::info!("File associations registered"),
+            Err(e) => log::error!("Registry error: {e}"),
+        }
+        unsafe { registry::open_default_apps_settings(); }
     });
 
     window.on_seeked(|_| {});

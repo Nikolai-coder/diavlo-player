@@ -1,4 +1,4 @@
-﻿import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "DIAVLO PLAYER";
@@ -24,6 +24,7 @@ export component AppWindow inherits Window {
     callback maximize-window();
     callback close-window();
     callback files-dropped([string]);
+    callback set-as-default();
 
     min-width: 420px;
     min-height: 280px;
@@ -150,7 +151,7 @@ export component AppWindow inherits Window {
             }
         }
 
-        // ── Content ───────────────────────────────────────
+        // ── Empty state ──────────────────────────────────
         if !root.has-track : Rectangle {
             background: #00000000;
             VerticalBox {
@@ -187,37 +188,72 @@ export component AppWindow inherits Window {
 
                 Rectangle { min-height: 4px; }
 
-                choose-btn := Rectangle {
-                    background: #20FFFFFF;
-                    border-radius: 10px;
-                    width: 130px;
-                    height: 34px;
-                    border-width: 1px;
-                    border-color: #12FFFFFF;
+                HorizontalBox {
+                    spacing: 10px;
+                    alignment: center;
 
-                    ta := TouchArea {
-                        mouse-cursor: pointer;
-                        clicked => { root.choose-file(); }
-                    }
+                    choose-btn := Rectangle {
+                        background: #20FFFFFF;
+                        border-radius: 10px;
+                        width: 130px;
+                        height: 34px;
+                        border-width: 1px;
+                        border-color: #12FFFFFF;
 
-                    Text {
-                        text: "Choose file";
-                        color: #FFFFFF;
-                        font-size: 12px;
-                        font-weight: 500;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-
-                    states [
-                        hover when ta.has-hover : {
-                            background: #30FFFFFF;
+                        ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.choose-file(); }
                         }
-                    ]
+
+                        Text {
+                            text: "Choose file";
+                            color: #FFFFFF;
+                            font-size: 12px;
+                            font-weight: 500;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        states [
+                            hover when ta.has-hover : {
+                                background: #30FFFFFF;
+                            }
+                        ]
+                    }
+
+                    default-btn := Rectangle {
+                        background: #00000000;
+                        border-radius: 10px;
+                        height: 34px;
+                        border-width: 1px;
+                        border-color: #12FFFFFF;
+                        min-width: 140px;
+
+                        ta-def := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.set-as-default(); }
+                        }
+
+                        Text {
+                            text: "Set as default player";
+                            color: #BB88FF;
+                            font-size: 11px;
+                            font-weight: 500;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        states [
+                            hover when ta-def.has-hover : {
+                                background: #15FFFFFF;
+                            }
+                        ]
+                    }
                 }
             }
         }
 
+        // ── Player state ─────────────────────────────────
         if root.has-track : Rectangle {
             background: #00000000;
             VerticalBox {
@@ -266,6 +302,7 @@ export component AppWindow inherits Window {
 
                 Rectangle { min-height: 10px; }
 
+                // ── Progress bar ─────────────────────────
                 HorizontalBox {
                     spacing: 10px;
 
@@ -300,6 +337,7 @@ export component AppWindow inherits Window {
 
                 Rectangle { min-height: 14px; }
 
+                // ── Controls ─────────────────────────────
                 HorizontalBox {
                     spacing: 12px;
                     alignment: center;
